@@ -1,0 +1,2853 @@
+---
+title: "PGC antidepressant response study descriptions"
+author: "Chris Lo, Social, Genetic and Developmental Psychiatry Centre, King's College London"
+date: "25/06/2024"
+output: 
+  bookdown::html_document2:
+    toc: true
+    theme: paper
+    toc_depth: 4
+    number_sections: true
+    toc_float: true
+    toc_highlight: true
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<style>
+.author {
+  font-size: 2.1em;
+  font-weight: bold;
+}
+
+.date {
+  font-size: 1.5em;
+}
+
+p.caption {
+  font-size: 1.2em;
+  text-align: center;
+}
+
+p {
+  font-size: 1em;
+  text-align: justify;
+}
+
+h1 {
+  font-size: 1.8em;
+  font-weight: bold;
+  text-align: left;
+}
+
+h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  text-align: left;
+}
+
+h3 {  
+  font-size: 1.3em;
+  font-weight: bold;
+  text-align: left;
+}
+  
+</style>
+
+```{css, echo=F}
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+```
+
+***
+
+# Project history
+
+## Background - AMBER study
+This work is a part of the Wellcome-Trust funded [**AMBER : Antidepressant Medications: Biology, Exposure & Response project**](https://www.kcl.ac.uk/research/amber-antidepressant-medications-biology-exposure-response), which aims to:
+
+* Develop measures of antidepressant exposure and response from NHS electronic health records, linked to research studies and genomic datasets.
+* Provide large, publicly available genome-wide association study datasets of antidepressant exposure and response.
+* Provide association study datasets of antidepressant exposure and genomic markers (DNA methylation, protein expression, metabolites).
+* Use these genomic association datasets to improve our mechanistic understanding of antidepressant actions and response.
+* Test the results from our genetic studies in experimental cell-based in vitro models.
+
+
+## Datasets
+Datasets were either shared via the PGC MDD or treatment response working groups (avilable on PGC cluster Snellius), or stored on Karen Hodgson’s hard drive locally.
+
+The files have been uploaded by Chris Lo to Snellius under this directory:
+
+/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium
+
+</br>
+
+***
+
+# European Studies
+Current list of studies available:
+
+* STAR*D
+* GENDEP
+* PGRN-AMPS
+* GENPOD
+* PFZ
+* Mayo
+* GSK
+* GODS
+* GSRD
+* DAST
+* MARS
+* IRL-GREY
+
+# East asian studies
+
+* Miaoli
+* Taipei
+* Japan
+
+# Moving over to new working directory
+
+## Genotyped data 
+
+```{bash, eval = F}
+
+# This is performed by user chrislo on Snellius
+
+# Paths
+# in: containing files that underwent initial genotype QC by Karen, check log files if interested
+in_genotyped="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/processed_data"
+out="/home/chrislo/projects/PGC_adresponse_studies/genotyped"
+ancestry="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/processed_data/ancestry"
+plink="/home/chrislo/Software/plink"
+master="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets"
+
+# File name descriptions
+study_list=$(find ${in_genotyped} -type f -name "*.fam")
+
+for file in $study_list; do
+  # file name of study
+  study=$((basename "$file") | sed "s/.fam//" | sed "s/_rem//" | sed "s/_trd//")
+  echo ${study}
+  # binary file extension of study
+  extension=$((basename "$file") | sed "s/.fam//")
+  echo ${extension}
+
+  # if statement to ascertain ancestry
+  # EUR: stard gendep dast pgrn genpod pfz mayo gsk gods genscot (9 cohorts in PGC1 paper + 1 replication cohort - genscot)
+  # EAS = miaoli japan taipei (3 cohorts in PGC1 paper)
+  # else = should have been excluded by Karen 
+  if [[ "stard gsrd gendep dast pgrn genpod pfz mayo gsk gods genscot" == *"$study"* ]]; then
+    ances="EUR"
+  elif [[ "miaoli japan taipei" == *"$study"* ]]; then
+    ances="EAS"
+  else
+    ances="exclude"
+  fi
+  echo ${ances}
+
+  # make ancestry-specific directory holding the studies
+  mkdir "$out"/EUR
+  mkdir "$out"/EAS
+  mkdir "$out"/exclude
+
+  # plink to run based on phenotype
+  if [ ${ances} == "EUR" ]; then 
+    mkdir "$out"/EUR/${study}
+    # plink (all)
+    "$plink"/plink \
+      --bfile "$in_genotyped"/${extension} \
+      --make-bed \
+      --out "$out"/EUR/${study}/${study}_all
+
+    # plink (remission)
+    "$plink"/plink \
+      --bfile "$in_genotyped"/${extension} \
+      --pheno "$ancestry"/all_eur_rem.txt \
+      --prune \
+      --make-bed \
+      --out "$out"/EUR/${study}/${study}_rem
+    # plink (percentage improvement)
+    "$plink"/plink \
+      --bfile "$in_genotyped"/${extension} \
+      --pheno "$ancestry"/all_eur_perc_improv_adj.txt \
+      --prune \
+      --make-bed \
+      --out "$out"/EUR/${study}/${study}_perc_improv
+
+    elif [ ${ances} == "EAS" ]; then 
+    mkdir "$out"/EAS/${study}
+    # plink (all)
+    "$plink"/plink \
+      --bfile "$in_genotyped"/${extension} \
+      --make-bed \
+      --out "$out"/EUR/${study}/${study}_all
+    # plink (remission)
+    "$plink"/plink \
+      --bfile "$in_genotyped"/${extension} \
+      --pheno "$ancestry"/all_asn_rem.txt \
+      --prune \
+      --make-bed \
+      --out "$out"/EAS/${study}/${study}_rem
+    # plink (percentage improvement)
+    "$plink"/plink \
+      --bfile "$in_genotyped"/${extension} \
+      --pheno "$ancestry"/all_asn_perc_improv_adj.txt \
+      --prune \
+      --make-bed \
+      --out "$out"/EAS/${study}/${study}_perc_improv
+    
+    else
+      :
+  fi 
+
+done
+
+# Mismatches with final publications
+# Percentage Improvement
+# GENDEP: publication 783, only got 695
+# Remission
+# STAR*D: publication 506/657, now 511/669 (too many, some needs to be filtered)
+# GENDEP: publication 291/365, now 326/415
+
+## Troubleshooting one by one
+# GENDEP
+# ALL
+# Percentage Improvement
+ "$plink"/plink \
+      --bfile "$in_genotyped"/gendep_rem \
+      --keep "$out"/EUR/gendep/gendep_update.txt \
+      --pheno "$master"/genotyped/shared_data/GENDEP/phenotypes_covariates/HAMD_improv_quad_time \
+      --prune \
+      --make-bed \
+      --out "$out"/EUR/gendep/gendep_perc_improv_update
+
+/genotyped/shared_data/GENDEP/phenotypes_covariates/HAMD_improv_quad_time
+/genotyped/shared_data/GENDEP/phenotypes_covariates/HAMD_remw12_pheno
+/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets
+
+# Remission
+ "$plink"/plink \
+      --bfile "$master"/genotyped/shared_data/GENDEP/non_imputed_GWAS/GenDep_Full_Sample_Clean_280710 \
+      --pheno /home/chrislo/projects/PGC_adresponse_studies/phenotype/gendep_temp/gendep_id_noheader.txt \
+      --make-bed \
+      --out "$out"/EUR/gendep/gendep_perc_improv
+
+########################################
+#### --- NOTE: GENDEP not fixed! --- ###
+########################################
+
+###################################
+
+# DAST
+# Percentage Improvement: 
+# There are 15 participants with missing phenotype data in the .fam file in Karen's drive.
+# When I run with original data, still got the same numbers.
+# Could be mistake there in original publication (if I don't remove those 15 participants, the numbers are correct).
+
+########################################
+#### --- NOTE: No need to fix??? --- ###
+########################################
+
+# STAR*D
+# Remission 
+# expand the list of patients
+ "$plink"/plink \
+      --bfile "$out"/EUR/stard/stard_rem \
+      --keep "$out"/EUR/stard/stard_updated.txt \
+      --make-bed \
+      --out "$out"/EUR/stard/stard_rem
+
+# "$out"/EUR/stard/stard_updated.txt used in keep flag is a filterd patient list with covariates information present in Karen's hard drive.
+# this is just used as verification - and the numbers are correct now.
+
+##################################
+# GenScot 
+# Re-run Generation Scotland replication analysis again with treatment-resistance
+# remove incorrect files in Generation Scotland directory
+rm -r /home/chrislo/projects/PGC_adresponse_studies/genotyped/EUR/genscot/genscot_perc_improv*
+rm -r /home/chrislo/projects/PGC_adresponse_studies/genotyped/EUR/genscot/genscot_rem*
+
+
+# Chris has re-created another ID file from Karen's hard drive, removing the RICOPILI assigned IDs on FID column.
+# re-run PLINK again
+"$plink"/plink \
+      --bfile "$in_genotyped"/genscot_trd \
+      --pheno /home/chrislo/projects/PGC_adresponse_studies/phenotype/genscot_temp/genscot_temp.txt \
+      --prune \
+      --make-bed \
+      --out "$out"/EUR/genscot/genscot_trd
+
+
+# MARS
+# Genotype files were store in the PGC MDD working group directory
+# making a copy to AD working group for use
+ln -s /gpfs/work5/0/pgcdac/DWFV2CJb8Piv_0116_pgc_data/mdd/wave2/v1/mdd_mmi2_eur_sr-qc.* "$out"/EUR/mars/temp/mmi2
+ln -s /gpfs/work5/0/pgcdac/DWFV2CJb8Piv_0116_pgc_data/mdd/wave2/v1/mdd_mmo4_eur_sr-qc.* "$out"/EUR/mars/temp/mmo4
+
+# check number of participants in each study
+wc -l "$out"/EUR/mars/temp/mmi2/mdd_mmi2_eur_sr-qc.fam
+# 1180
+wc -l "$out"/EUR/mars/temp/mmo4/mdd_mmo4_eur_sr-qc.fam
+# 675
+
+```
+
+# Phenotype data (European studies)
+
+## STAR*D 
+too complicated and skip for now
+
+## DAST
+
+Patients in the DAST trial were ascertained from consecutive admissions for inpatient treatment at the Department of Psychiatry, University of Muenster, Germany between 2004 and 2008, then treated in a naturalistic setting with a variety of antidepressant.
+
+Patients’ lifetime diagnoses related to major depression and bipolar disorder were ascertained by the use of a structured clinical interview (SCID-I) according to the criteria of DSM-IV.
+
+Clinical course of depression was assessed using the 21-item HAMD (HAMD-21) scale on a weekly basis.
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 26-06-2024
+ 
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/dast"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/DAST"
+
+# File name descriptions
+cp "$in/Baune_Lewis_pharmacogenetics_PRS_PGC_MDD_2104_2016.xls" "$out"
+cp "$in"/phenotypes_covariates/* "$out"/pheno_qc
+
+```
+</details>
+
+<details><summary>Examination of data, phenotyping and re-write to cleaner version</summary>
+```{R, eval=F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-06-17
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+# load packages
+library(tidyverse)
+library(readxl)
+
+# directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/dast"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/dast"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read in files from collaborators
+dast <- read_excel("Baune_Lewis_pharmacogenetics_PRS_PGC_MDD_2104_2016.xls")
+
+# re-format column names
+col = colnames(dast)
+col = gsub("__no_0__yes_1", "", col)
+
+# write column names as data.frame
+write.csv(data.frame(col = col), "col_names.csv", row.names = F)
+
+# print column names
+print(col)
+# [1] "code"                                                                            
+# [2] "gender"                                                                          
+# [3] "age"                                                                             
+# [4] "ageofonset"                                                                      
+# [5] "number of episodes prior to current"                                             
+# [6] "melancholic"                                                                     
+# [7] "atypical"                                                                        
+# [8] "psychotic"                                                                       
+# [9] "single_"                                                                         
+#[10] "recurrent"                                                                       
+#[11] "hamd21-admission"                                                                
+#[12] "hamd21-week6"                                                                    
+#[13] "hamd21-discharge"                                                                
+#[14] "antidepressant drug class; 1=SSRI; 2=SNRI; 3=NASSRA; 4=tri/tetracyclic; 5=others"
+#[15] "generic name" 
+
+# rename column names for easy manipulation
+colnames(dast) = c("ID", "gender", "age", "age_onset", "n_epi_prior",
+                  "melancholic", "atypical", "psychotic", "single", "recurrent",
+                  "hamd21-admission", "hamd21-week6", "hamd21-discharge",
+                  "ad_class", "ad_name")
+
+# reform class names
+dast <- dast %>% 
+  mutate(ad_class = case_when(ad_class == "1" ~ "SSRI",
+                           ad_class == "2" ~ "SNRI",
+                           ad_class == "3" ~ "NASSRA",
+                           ad_class == "4" ~ "Tricyclic / Tetracyclic",
+                           ad_class == "5" ~ "Others"))
+
+# diagnosis information
+dx = data.frame()
+for (diag in c("melancholic", "atypical", "psychotic", "single", "recurrent")) {
+  # table
+  tab = data.frame(table(dast[diag]))
+  row = which(names(table(dast[diag]))==1)
+  tab <- tab %>% slice(row)
+  add <- data.frame(type = diag, freq = tab$Freq)
+  dx = rbind(dx, add)
+}
+write.csv(dx, "dx.csv", row.names = F)
+
+# drug information
+# Class
+ad_class = data.frame(table(dast$ad_class))
+colnames(ad_class) = c("Class", "Frequency")
+ad_class <- ad_class %>% rbind(data.frame(Class = "Total", Frequency = nrow(dast)))
+write.csv(ad_class, "ad_class.csv", row.names = F)
+
+# Name
+ad_name = data.frame(table(tolower(dast$ad_name)))
+colnames(ad_name) = c("ad_name", "Frequency")
+class_map = unique(dast[, c("ad_class", "ad_name")])
+ad_name <- left_join(ad_name, class_map, by = "ad_name") %>% 
+    select(ad_name, ad_class, Frequency) %>% 
+    arrange(ad_class) %>%
+    rbind(data.frame(ad_name = "Total", ad_class = "Total", Frequency = nrow(dast)))
+colnames(ad_name) = c("Name", "Class", "Frequency")
+write.csv(ad_name, "ad_name.csv", row.names = F)
+
+# Write out the useful outputs
+# Phenotypes
+# Remission
+dast$rem = rem(pheno_df = dast, scale = "HAMD-21", cutoff = NULL, default = T, post_col = "hamd21-week6", rem_code = 1, nonrem_code = 2)
+# table(dast$rem): same as Karen's drive (w6_rem_pheno)
+#  1   2 
+#279 342 
+write.table(dast %>% mutate(fid = ID) %>% select(ID, fid, rem), paste0(out, "/pheno/dast_rem.txt"), row.names=F, col.names=F, quote=F)
+# percentage improvement: same as Karen's drive (w6_improv_pheno, but original file not yet percentage converted)
+dast$perc_improv = perc_improv(pheno_df = dast, pre_col = "hamd21-admission", post_col = "hamd21-week6")
+# convert to z-scores, and adjust for age, gender and baseline symptom scores
+dast$z_perc_improv_adj = scale(resid(lm(perc_improv ~ age + factor(gender) + `hamd21-admission`, data = dast, na.action=na.exclude )))
+write.table(dast %>% mutate(fid = ID) %>% select(ID, fid, perc_improv), paste0(out, "/pheno/dast_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+# response
+dast$resp = response(pheno_df = dast, pre_col = "hamd21-admission", post_col = "hamd21-week6", perc_cutoff = 50, resp_code = 1, nonresp_code = 2)
+write.table(dast %>% mutate(fid = ID) %>% select(ID, fid, resp), paste0(out, "/pheno/dast_resp.txt"), row.names=F, col.names=F, quote=F)
+# partial response
+dast$part_resp = response(pheno_df = dast, pre_col = "hamd21-admission", post_col = "hamd21-week6", perc_cutoff = 25, resp_code = 1, nonresp_code = 2)
+write.table(dast %>% mutate(fid = ID) %>% select(ID, fid, part_resp), paste0(out, "/pheno/dast_part_resp.txt"), row.names=F, col.names=F, quote=F)
+
+
+# by depression sub-diagnosis
+for (diag in c("melancholic", "atypical", "psychotic", "single", "recurrent")) {
+  # list
+  id = data.frame((dast[c("ID", "ID", diag)])) %>% filter(!!sym(diag) == 1)
+  write.table(id, paste0(out,"/sub/dast_sub_", diag, ".txt"), row.names=F, col.names=F, quote=F)
+}
+
+# by drug class
+for (class in c("NASSRA", "Others", "SNRI", "SSRI", "Tricyclic / Tetracyclic")) {
+  id = data.frame((dast[c("ID", "ID", "ad_class")])) %>% filter(ad_class == class)
+  if (class == "Tricyclic / Tetracyclic") {class = "tricyclic_tetracyclic"}
+  write.table(id, paste0(out, "/class/dast_class_", class, ".txt"), row.names=F, col.names=F, quote=F)
+}
+
+# by drug name
+dast$ad_name = tolower(dast$ad_name) # convert to lower cases
+for (name in unique(dast$ad_name)) {
+  id = data.frame((dast[c("ID", "ID", "ad_name")])) %>% filter(ad_name == name)
+  write.table(id, paste0(out, "/name/dast_name_", name, ".txt"), row.names=F, col.names=F, quote=F)
+}
+
+# demographics and depression history
+write.table(dast[c("ID", "ID", "gender", "age", "age_onset", "n_epi_prior")], paste0(out, "/demo/dast_demo.txt"), row.names=F, col.names=T, quote=F)
+
+```
+</details>
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+  rbind(data.frame(Criteria = "Inpatient recruitment", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAMD-21")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "none")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = TRUE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (DAST)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Variables available 
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/dast"
+setwd(dir)
+table = read.csv("col_names.csv", header=T)
+
+table %>% 
+  kbl(caption=' Column names') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Diagnosis
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/dast"
+setwd(dir)
+table = read.csv("dx.csv", header=T)
+
+table %>% 
+  kbl(caption='Diagnosis') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Drug class
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/dast"
+setwd(dir)
+table = read.csv("ad_class.csv", header=T)
+
+table %>% 
+  kbl(caption='Antidepressant drug classes') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Drug names
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/dast"
+setwd(dir)
+table = read.csv("ad_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Antidepressant drug names') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+
+
+
+</br>
+
+***
+
+## GENDEP 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 26-06-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/GENDEP/phenotypes_covariates"
+
+# Treatment arms assignment
+cp "$in/drug" "$out"
+
+# Patient details
+cp "$in/gendep-core-outsheet-noquote.txt" "$out"
+# subtypes of depression
+cp "$in/gendep-subtypes-symptoms-comma.txt" "$out"
+# adverse events
+cp "$in/Glong_adverse301108.csv" "$out"
+# life events
+cp "$in/life_events.txt" "$out"
+
+# baseline items (individual item level)
+# BDI 
+cp "$in/BDI-wk0-data.txt" "$out"
+# HAMD
+cp "$in/Hamilton-wk0-data.txt" "$out"
+# MADRS (primary outcome)
+cp "$in/madrs-wk0-data.txt" "$out"
+
+# cleaned phenotypes from previous analysts
+mkdir "$out/pheno"
+
+# HAMD
+cp "$in"/HAMD_* "$out/pheno"
+# MADRS
+cp "$in"/MADRS_* "$out/pheno"
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-06-17
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+# load packages
+library(tidyverse)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/gendep"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+
+### --- Master / Core dataframe --- ###
+master = read.table("gendep-core-outsheet-noquote.txt", sep="\t", header=T)
+length(colnames(master)) # 314, too long
+
+# Note: "included" column appears to be filtering the participants
+# Before filtering: 868, after filtering: 811 (seems number used in papers)
+master <- master %>% filter(included == 1)
+
+### --- Drug --- ###  
+drug = master[, grepl("bloodsampleid|^drug$", colnames(master))]
+colnames(drug) = c("ID", "ad_name")
+# add class information
+drug = drug %>% mutate(ad_class = case_when(ad_name == "nortriptyline" ~ "TCA",
+                                        ad_name == "escitalopram" ~ "SSRI"))
+# form frequency tables
+tab = data.frame(table(tolower(drug$ad_name)))
+colnames(tab) = c("ad_name", "Frequency")
+class_map = unique(drug[, c("ad_class", "ad_name")])
+ad_name <- left_join(tab, class_map, by = "ad_name") %>% 
+    select(ad_name, ad_class, Frequency) %>% 
+    arrange(ad_class) %>%
+    rbind(data.frame(ad_name = "Total", ad_class = "Total", Frequency = nrow(drug)))
+colnames(ad_name) = c("Name", "Class", "Frequency")
+write.csv(ad_name, "ad_name.csv", row.names = F)
+
+# Number seems concordant with paper: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3787526/
+
+# Manual examine column names, then group up the variables
+# Demographics
+demo_pattern = "^age$|sex|marital|occup|children|smoker|smdaily"
+demo <- data.frame(Colnames = colnames(master[,grepl(demo_pattern, colnames(master))]))
+write.csv(demo, "demo_col.csv", row.names=F)
+
+# Study design
+design_pattern = "subjectid|bloodsampleid|centreid|random"
+design <- master[,grepl(design_pattern, colnames(master))]
+# not included in summary, not very useful
+
+# drug information
+drug_pattern = "subjectid|bloodsampleid|drug|^ever|^mh|^conc|^mc"
+drug <- master[,grepl(drug_pattern, colnames(master))]
+colnames(drug)
+#[1] "subjectid"     "bloodsampleid" "drug"          "mhssri"       
+# [5] "everssri"      "mhtca"         "evertca"       "mhdual"       
+# [9] "everdual"      "mhimao"        "everimao"      "mhoth"        
+#[13] "everoth"       "mhantidep"     "everantidep"   "concssri"     
+#[17] "conctca"       "concantidep"   "mcbenzo"       "mczhypn"      
+#[21] "mcestro"       "mhmirta"       "mcmirta"      
+# seems to represent number of antidepressants, and ever used antidepressant before trial
+drug_col = data.frame() %>%
+  rbind(data.frame(Colnames = "^mh", Description = "Number of historical medications before trial")) %>%
+  rbind(data.frame(Colnames = "^ever", Description = "Ever used medications before trial (binary: 1/0)")) %>% 
+  rbind(data.frame(Colnames = "^conc", Description = "Concurrent using antidepressants (binary: 1/0)")) %>%
+  rbind(data.frame(Colnames = "^mc", Description = "Concurrent using non-antidepressants (binary: 1/0)"))
+# drug list
+drug_list <- colnames(drug)[-c(1:3)]
+# remove strings and take out unique parts
+drug_list = unique(gsub("ever|mh|conc|mc", "", drug_list))
+print(drug_list)
+# [1] "ssri"    "tca"     "dual"    "imao"    "oth"     "antidep" "benzo"  
+# [8] "zhypn"   "estro"   "mirta"
+# manually add this list into the previous dataframe
+
+drug_col = drug_col %>%
+  rbind(data.frame(Colnames = "Drug_list",
+                   Description = "SSRI, TCA, IMAO (MAOI), OTH, Benzodiazepines, Z-hypnotics, Estrogen, Mirtazapine"))
+write.csv(drug_col, "drug_col_names.csv", row.names=F)
+
+# depression information
+dep_pattern = "subjectid|bloodsampleid|ageonset|episodes|duration|mscore|melanch|atscore|atyp|anxdep|anxscore|anxsomdep"
+dep <- master[,grepl(dep_pattern, colnames(master))]
+# contains subtype information
+# descriptive as table
+dep_table = data.frame()
+for (diag in c("melanch", "atyp", "anxdep", "anxsomdep")) {
+  tab = data.frame(table(master[diag]))
+  row = which(names(table(master[diag]))==1)
+  tab <- tab %>% slice(row)
+  add <- data.frame(type = diag, freq = tab$Freq)
+  dep_table = rbind(dep_table, add)}
+write.csv(dep_table, "dep_subtype.csv", row.names=F)
+
+# baseline information
+bl_pattern = "subjectid|bloodsampleid|^bl"
+bl <- master[,grepl(bl_pattern, colnames(master))]
+# not sure what is this
+
+# Response variables (phenotyped)
+pheno = data.frame() %>%
+  rbind(data.frame(Colnames = "remit$", Description = "remission (hd / md / bd represented different scales)")) %>%
+  rbind(data.frame(Colnames = "resp$", Description = "response (hd / md / bd represented different scales)")) %>%
+  rbind(data.frame(Colnames = "percadj$", Description = "percentage improvement (hd / md / bd represented different scales)")) %>%
+  rbind(data.frame(Colnames = "^weight", Description = "weight (weeks 0,6,8,12,26)")) %>%
+  rbind(data.frame(Colnames = "^BMI", Description = "BMI (weeks 0,6,8,12,26, out)"))
+write.csv(pheno, "response_clinical.csv", row.names=F)
+
+# Depression symptom scores
+symp_pattern = "subjectid|bloodsampleid|^suiscore|^madrs|hdrs|bdi|missing"
+symp <- master[,grepl(symp_pattern, colnames(master))]
+
+symp_table <- data.frame()
+
+for (scale in c("madrs", "hdrs", "bdi", "missing")) {
+  col = colnames(symp)[grepl(scale, colnames(symp))]
+  time = paste(gsub(scale, "", col), collapse = ",")
+  add = data.frame(scale = scale, time = time)
+  symp_table <- rbind(symp_table, add)
+}
+
+colnames(symp_table) = c("Assessment Scale", "Weeks available")
+write.csv(symp_table, "symptom_scale.csv", row.names=F)
+
+# Dimensions of symptoms
+# In original publication (https://pubmed.ncbi.nlm.nih.gov/27089522/):
+# 3 factors: mood, cognitive and neurovegetative symptom factors
+# 6 dimensions: mood, anxiety, pessimism, interest-activity, sleep, appetite
+dim = data.frame() %>%
+ rbind(data.frame(Colnames = "fm$", Description = "Mood factor")) %>%
+ rbind(data.frame(Colnames = "fc$", Description = "Cognitive factor")) %>%
+ rbind(data.frame(Colnames = "fn$", Description = "Neurovegetative factor")) %>%
+ rbind(data.frame(Colnames = "ffm$", Description = "Mood dimension")) %>%
+ rbind(data.frame(Colnames = "ffanx$", Description = "Anxiety dimension")) %>%
+ rbind(data.frame(Colnames = "ffpes$", Description = "Pessimism dimension")) %>%
+ rbind(data.frame(Colnames = "ffint$", Description = "Interest-activity dimension")) %>%
+ rbind(data.frame(Colnames = "ffslp$", Description = "Sleep dimension")) %>%
+  rbind(data.frame(Colnames = "ffapp$", Description = "Appetite dimension"))
+write.csv(dim, "dim.csv", row.names=F)
+
+# Antidepressant Dosage
+dose_pattern = "subjectid|bloodsampleid|drug|^dose"
+dose <- master[,grepl(dose_pattern, colnames(master))] %>%
+  pivot_longer(cols = starts_with("dose"),
+               names_to = "week", names_prefix = "dose",
+               values_to = "dose") %>%
+  mutate(dose = as.numeric(dose), week = as.numeric(week)) %>%             
+  group_by(drug, week, dose) %>%
+  summarise(n = n()) 
+write.csv(dose, "dose.csv", row.names=F)
+
+# Read adverse events dataframe
+adr <- read.csv("Glong_adverse301108.csv", header=T)
+# Manually add in scales
+adr_scale = data.frame() %>%
+  rbind(data.frame(Colnames = "^sfq", Description = "Sexual Functioning Questionnaire")) %>%
+  rbind(data.frame(Colnames = "^asec", Description = "Antidepressant Side-Effect Checklist")) %>%
+  rbind(data.frame(Colnames = "^uku", Description = "UKU side effects rating scale"))
+write.csv(adr_scale, "adr_scale_gendep.csv", row.names=F)
+
+# Write out outputs for use
+setwd(out)
+
+# Phenotypes
+# actual phenotypes too difficult to reproduce (involves imputation etc.), so now only re-writing the original phenotypes to new project directory
+# these are on Karen's hard drive as processed data
+gendep_pheno = read.table("/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/GENDEP/interim_data/gendep_pheno_covar.txt", header=T)
+# remission
+write.table(gendep_pheno %>% select(fid, iid, rem), paste0(out, "/pheno/gendep_rem.txt"), col.names=F, row.names=F, quote=F)
+# percentage improvement
+write.table(gendep_pheno %>% select(fid, iid, z_perc_improv_adj), paste0(out, "/pheno/gendep_perc_improv.txt"), col.names=F, row.names=F, quote=F)
+
+# Drug name and class
+for (name in unique(master$drug)) {
+  id = data.frame((master[c("bloodsampleid", "bloodsampleid", "drug")])) %>% filter(drug == name)
+  write.table(id, paste0(out, "/name/gendep_name_", name, ".txt"), row.names=F, col.names=F, quote=F)
+
+  if (name == "escitalopram") {write.table(id, paste0(out, "/class/gendep_class_SSRI.txt"), row.names=F, col.names=F, quote=F)}
+  else if (name == "nortriptyline") {write.table(id, paste0(out, "/class/gendep_class_TCA.txt"), row.names=F, col.names=F, quote=F)}
+}
+```
+</details>
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+  rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "MADRS")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age, marriage status, occupation, children, amounts of cigarettes per day"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "weight, BMI")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = TRUE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Drug Names
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("ad_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Antidepressant (treatment arms) in GENDEP') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Drug column names
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("drug_col_names.csv", header=T)
+
+table %>% 
+  kbl(caption='Antidepressant drug column names (not limited to treatment arms)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Demographics
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("demo_col.csv", header=T)
+
+table %>% 
+  kbl(caption='Demographic variables available (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Depression subtypes
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("dep_subtype.csv", header=T)
+
+table %>% 
+  kbl(caption='Depression subtypes (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Response definitions and clinical variables
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("response_clinical.csv", header=T)
+
+table %>% 
+  kbl(caption='Response and clinical variables (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Depression symptom assessment scale
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("symptom_scale.csv", header=T)
+
+table %>% 
+  kbl(caption='Symptom assessment scale (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Side effect assessment scale
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("adr_scale_gendep.csv", header=T)
+
+table %>% 
+  kbl(caption='Side effect assessment scale (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Drug dose
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("dose.csv", header=T)
+
+table %>% 
+  kbl(caption='Antidepressant dosage by week (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Dimensions / Factors
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gendep"
+setwd(dir)
+table = read.csv("dim.csv", header=T)
+
+table %>% 
+  kbl(caption='Columns for score dimensions (GENDEP)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+
+</br>
+
+***
+
+## GSK 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 02-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/gsk"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/NEWMEDS/imi"
+
+# copy all files starting with gsk extension
+cp "$in/"gsk_* "$out"
+cp "$in/"GSK_* "$out"
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-06-17
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/gsk"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/gsk"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# Note: Supplementary methods from Ollie Pain's paper - 137 selected
+master = read.table("gsk_newmends_in.txt", header=T, sep = "\t")
+
+# appears to be a cleaned data.frame containing:
+# IDs, drug and demographics
+# Per 2-week HAMD scores, and remission phenotype
+
+# read-in other .txt files to check whether other useful information is also around
+list_files = list.files(dir, pattern = ".txt")
+list_files <- list_files[list_files != "gsk_newmends_in.txt"]
+
+# read files
+for (file in list_files) {
+  name = gsub("gsk_|.txt", "", file)
+  df <- read.table(paste0(dir, "/", file), header=T,sep = "\t")
+  assign(name,df)
+}
+
+# Master - treatment information
+table(master$rantx) # Escitalopram 137, so all on escitalopram
+
+# checking IDs with .fam files in imputed genotype
+fam <- read.table("/gpfs/work5/0/pgsr0585/oliverp/users/chrislo/PGC_study/imputed/EUR/gsk/gsk.fam", sep = " ")
+# remove "GSK" string from IID such that the numbers are equal
+fam_id = sort(as.numeric(gsub("GSK", "", fam$V2)))
+# phenotype file IDs
+pheno_id = sort(as.numeric(master$subject))
+
+identical(sort(fam_id), sort(pheno_id)) # FALSE 
+length(fam_id) # 132
+length(pheno_id) # 137, so .fam file might be subset that passes genotype QC
+# making sure all ids in fam_id are in pheno_id
+setdiff(fam_id, pheno_id) 
+# numeric(0), all patients in .fam file are in phenotype file.
+
+# Demographics
+demog <- left_join(master['subject'], demog, by = c("subject" = "SUBJECT"))
+#colnames(demog)
+#[1] "subject"     "PTID"        "RANTX"       "AGE"         "SEX"        
+# [6] "HT"          "ETHORI"      "RACETXT"     "TMTSTDT"     "TMTSPDT"    
+#[11] "SAFETY"      "ITT"         "WDW"         "TAPER_SP"    "TAPER_ST"   
+#[16] "DNA_samples"
+# looks like useful information are age, sex, height.
+# others look like trial design stuffs (ITT: intention-to-treat etc.), leave out for now.
+
+# cgi (Clinical global impression scale)
+cgi <- left_join(master['subject'], cgi, by = c("subject" = "SUBJECT"))
+# group up them and save as .csv to contain the numbers available
+cgi <- cgi %>% group_by(WINWEEK) %>% summarise(Frequency = n())
+colnames(cgi) = c("Trial Week", "Number of participants avilable (CGI)")
+write.csv(cgi, "summary/cgi.csv", row.names=F)
+
+# csfqt (Changes in Sexual Functioning Questionnaire)
+csfqt <- left_join(master['subject'], csfqt, by = c("subject" = "SUBJECT"))
+# group up them and save as .csv to contain the numbers available
+csfqt <- csfqt %>% group_by(WINWEEK) %>% summarise(Frequency = n())
+colnames(csfqt) = c("Trial Week", "Number of participants avilable (CSFQT)")
+write.csv(csfqt, "summary/csfqt.csv", row.names=F)
+
+# ham-d (HAM-D 17)
+hamd <- left_join(master['subject'], hamd, by = c("subject" = "SUBJECT"))
+# seems like HAMD-17 scores per week and subsequent definition for response
+hamd <- hamd %>% group_by(WINWEEK) %>% summarise(Frequency = n())
+colnames(hamd) = c("Trial Week", "Number of participants avilable (HAMD-17)")
+write.csv(hamd, "summary/hamd.csv", row.names=F)
+
+# HANX - no idea what this is, keeping this line for record-keeping
+
+# mei (Motivation and Energy Inventory - patient functioning)
+mei <- left_join(master['subject'], mei, by = c("subject" = "SUBJECT"))
+# not sure how MEI items are useful or not
+# apparent column names (baseline MEI, MEI change at week 8 and final MEI)
+mei <- mei %>% rename(MEIB = BMEI) %>% select(-MEICHG8, -MEICHGL) %>%
+      mutate(MEIB = as.numeric(MEIB), MEITOT8 = as.numeric(MEITOT8), MEITOTL = as.numeric(MEITOTL)) %>%
+              pivot_longer(cols = starts_with("MEI"),
+               names_to = "week", names_prefix = "MEI",
+               values_to = "score") %>%
+      group_by(week) %>% summarise(mean = mean(score, na.rm=T))
+mei$week = c("Baseline", "Week 8", "Final")
+colnames(mei) = c("Trial Week", "Mean MEI score")
+write.csv(mei, "summary/mei.csv", row.names=F)
+
+# weight (weight)
+weight <- left_join(master['subject'], weight, by = c("subject" = "SUBJECT"))
+# only contains weight at baseline (BWTKG) and week 8 (WTKG)
+weight <- weight %>% rename(kg_baseline = BWTKG, `kg_week 8` = WTKG) %>% 
+    pivot_longer(cols = starts_with("kg"),
+                            names_to = "time point", names_prefix = "kg_", 
+                            values_to = "Weight") %>%
+    group_by(`time point`) %>% summarise(`Mean weight` = mean(Weight, na.rm=T))
+write.csv(weight, "summary/weight.csv", row.names=F)
+
+# There was also a "wide" stada object (.dta) that might seem useful.
+wide = read_dta("/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/NEWMEDS/imi/gskwide.dta")
+# colnames(wide)
+# [1] "indid"        "weight0"      "hamd0"        "hdremit0"     "weight1"     
+# [6] "hamd1"        "hdremit1"     "weight2"      "hamd2"        "hdremit2"    
+#[11] "weight3"      "hamd3"        "hdremit3"     "weight4"      "hamd4"       
+#[16] "hdremit4"     "weight5"      "hamd5"        "hdremit5"     "weight6"     
+#[21] "hamd6"        "hdremit6"     "weight8"      "hamd8"        "hdremit8"    
+#[26] "weight9"      "hamd9"        "hdremit9"     "weight12"     "hamd12"      
+#[31] "hdremit12"    "source"       "subject"      "ptid"         "rantx"       
+#[36] "age"          "sex"          "ethori"       "racetxt"      "dna_samples" 
+#[41] "blhamd_merge" "ht"           "blweight"     "esc"          "hdvalid" 
+
+# This seems to contain HAMD, remission status and weight weekly.
+# Also some demographics
+# These looks to be the same as previous things
+# Weight - only available for week 0 and week 8
+# HAMD only available by weekly, just coded NA as convenience.
+# So this doesn't add more to what we already have.
+
+# Write useful outputs
+setwd(out)
+# update ID
+master = master %>% mutate(FID = paste0("GSK", subject))
+# Phenotypes
+master$rem0 = rem(pheno_df = master, scale = "HAMD-17", cutoff = NULL, default = T, post_col = "hamd0", rem_code = 1, nonrem_code = 2)
+master$rem2 = rem(pheno_df = master, scale = "HAMD-17", cutoff = NULL, default = T, post_col = "hamd2", rem_code = 1, nonrem_code = 2)
+master$rem4 = rem(pheno_df = master, scale = "HAMD-17", cutoff = NULL, default = T, post_col = "hamd4", rem_code = 1, nonrem_code = 2)
+master$rem6 = rem(pheno_df = master, scale = "HAMD-17", cutoff = NULL, default = T, post_col = "hamd6", rem_code = 1, nonrem_code = 2)
+master$rem8 = rem(pheno_df = master, scale = "HAMD-17", cutoff = NULL, default = T, post_col = "hamd8", rem_code = 1, nonrem_code = 2)
+# some patients did not have full measurements, so imputed by final measurement 
+master <- master %>% mutate(rem = ifelse(!is.na(rem8), rem8,
+                                        ifelse(!is.na(rem6), rem6,
+                                        ifelse(!is.na(rem4), rem4,
+                                        ifelse(!is.na(rem2), rem2, rem0)))))
+# check with hdremit
+#> table(master$hdremit)
+# 0  1 
+#79 58 
+# table(master$rem)
+# 1  2 
+#58 79 
+# flipped but numbers are the same
+write.table(master %>% select(FID, rem), paste0(out, "/pheno/gsk_rem.txt"), row.names=F, col.names=F, quote=F)
+
+# perc_improv: seems too difficult to replicate (re-scaling might have been performed on whole study sample and we don't have the exact codes)
+
+# --- Attempts to replicate at best --- #
+master$perc8 = perc_improv(pheno_df = master, pre_col = "hamd0", post_col = "hamd8")
+master$perc6 = perc_improv(pheno_df = master, pre_col = "hamd0", post_col = "hamd6")
+master$perc4 = perc_improv(pheno_df = master, pre_col = "hamd0", post_col = "hamd4")
+master$perc2 = perc_improv(pheno_df = master, pre_col = "hamd0", post_col = "hamd2")
+# some patients did not have full measurements, so imputed by final measurement 
+master <- master %>% mutate(perc_improv = ifelse(!is.na(perc8), perc8,
+                                        ifelse(!is.na(perc6), perc6,
+                                        ifelse(!is.na(perc4), perc4,
+                                        ifelse(!is.na(perc2), perc2, hamd0)))))
+
+# read the phenotypes from karen's drive
+a = read.table("/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/NEWMEDS/interim_data/gsk_pheno_covar.txt", header=T)
+# convert to z-scores
+df <- master %>% mutate(sex = case_when(sex == "M" ~ "1",
+                                            sex == "F" ~ "2"),
+                            sex = as.numeric(sex),
+                       subject = as.character(subject)) 
+df$perc = scale(df$perc_improv)
+df = df %>% filter(subject %in% gsub("GSK", "", a$fid))
+df$z_perc_adj = as.numeric(scale(resid(lm(perc_improv ~ age + factor(sex) + hamd0, data=df, na.action=na.exclude))))
+# correlations
+#cor(a$z_perc_improv_adj, df$z_perc_adj)
+#[1] 0.9497175
+# good correlations, but not perfect: so cannot be replicated still.
+# for sake of time, just pull out the 132 participants for percentage improvement (not 137 in remission, but will be filtered downstream anyways because they don't have covariates data)
+write.table(a %>% select(fid, iid, z_perc_improv_adj), paste0(out, "/pheno/gsk_rem.txt"), row.names=F, col.names=F, quote=F)
+
+# Drug name and class (all citalopram)
+master$fid = paste0("GSK", master$subject)
+master$iid = paste0("GSK", master$subject)
+write.table(master %>% select(fid, iid, rantx), paste0(out, "/name/gsk_name_escitalopram.txt"), row.names=F, col.names=F, quote=F)
+write.table(master %>% select(fid, iid, rantx), paste0(out, "/class/gsk_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+```
+</details>
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+  rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAMD-17")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age, height, weight, ethnicity"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "CGI, CSFQT (sexual dysfunction), MEI (patient functioning)")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (GSK)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Drug Names
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary = data.frame(`Drug Name` = "escitalopram", `Drug Class` = "SSRI", "Frequency" = 137)
+summary %>% 
+  kbl(caption='Drug Names and sample sizes in GSK') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### HAMD
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gsk/summary"
+setwd(dir)
+table = read.csv("hamd.csv", header=T)
+
+table %>% 
+  kbl(caption='HAMD measurements available (GSK)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Weight
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gsk/summary"
+setwd(dir)
+table = read.csv("weight.csv", header=T)
+
+table %>% 
+  kbl(caption='Weight measurements available (GSK)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Clinical Global Impression Scale (CGI)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gsk/summary"
+setwd(dir)
+table = read.csv("cgi.csv", header=T)
+
+table %>% 
+  kbl(caption='CGI measurements available (GSK)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Motivation and Energy Inventory (MEI)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gsk/summary"
+setwd(dir)
+table = read.csv("mei.csv", header=T)
+
+table %>% 
+  kbl(caption='MEI measurements available (GSK)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Changes in Sexual Functioning Questionnaire (CSFQT)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/gsk/summary"
+setwd(dir)
+table = read.csv("csfqt.csv", header=T)
+
+table %>% 
+  kbl(caption='CSFQT measurements available (GSK)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+
+</br>
+
+***
+
+## PGRN 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 02-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/pgrn"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/PGRN_AMPS"
+
+# copy all files in the phenotype file
+cp "$in/"PhenotypeFiles/* "$out"
+
+# visually inspecting the files, 
+# this file: /home/chrislo/projects/PGC_adresponse_studies/original/pgrn/phs000670.v1.pht003556.v1.p1.c1.PGRN_AMPS_Subject_Phenotypes.HMB.txt
+# seems to contain phenotype information
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-05
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/pgrn"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/pgrn"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read in phenotype file
+pgrn = read.table("phs000670.v1.pht003556.v1.p1.c1.PGRN_AMPS_Subject_Phenotypes.HMB.txt", header=T, skip = 10, sep = "\t")
+
+# print column names
+colnames(pgrn)
+ [1] "dbGaP_Subject_ID"  "SUBJID"            "lookup.race"      
+ [4] "race"              "gender"            "age"              
+ [7] "qidsctotal.b"      "hrsdtotal.b"       "qidsctotal.w4"    
+[10] "remissionqids.w4"  "qidscpctchange.w4" "qids.response2.w4"
+[13] "qidsctotal.w8"     "remissionqids.w8"  "qidscpctchange.w8"
+[16] "qids.response2.w8" "med.b"             "dose.b"           
+[19] "dose.w4"           "dose.w8"           "height"           
+[22] "weight"            "maritalstatus"     "livewithspouse"   
+[25] "yearsschool"       "highdegree"        "currentstudent"   
+[28] "currentempstat"    "ageonset"          "seasonalpattern"  
+[31] "psychotherapy"     "remission"         "response"         
+[34] "qidscpctchange"    "IsExcluded"        "ExclusionReason"  
+[37] "consentMonth"      "consentYear"       "currentonsetMonth"
+[40] "currentonsetYear"  "EVEC.1"            "EVEC.2"           
+[43] "EVEC.3"            "EVEC.4" 
+
+# Demographics
+demo_pattern = "SUBJID|lookup.race|gender|^age$|height|weight|maritalstatus|currentstudent|currentempstat|ageonset|psychotherapy" 
+demo = pgrn[grepl(demo_pattern, colnames(pgrn))]
+
+# write column names as data.frame, and the actual dataframe as .txt
+write.csv(data.frame(col = colnames(demo)), paste0(dir, "/demo_colnames.csv"), row.names = F)
+write.table(demo, paste0(out,"/demo/pgrn_demo.txt"), row.names=F, col.names=T,quote=F)
+
+# QIDS - depression symptom assessment scale
+qids = "^qidsctotal" 
+qids = pgrn[grepl(qids, colnames(pgrn))] %>%
+      pivot_longer(cols = starts_with("qidsctotal."),
+               names_to = "week", names_prefix = "qidsctotal.",
+               values_to = "QIDS") %>%
+      group_by(week) %>% summarise(N = sum(!is.na(QIDS)))
+write.csv(qids, paste0(dir, "/ad_qids.csv"), row.names = F)
+
+# phenotypes
+# apprently there are remission, resopnse columns already
+# remission
+rem = pgrn %>% select(SUBJID, remission)
+# read Karen's phenotype file for reference
+pgrn_rem = read.table("/home/chrislo/projects/PGC_adresponse_studies/original/pgrn/w8rem_plink")
+rem = rem %>% filter(SUBJID %in% pgrn_rem$V1)
+#table(rem$remission)
+#Non-Remitter     Remitter 
+#         317          212 
+#> table(pgrn_rem$V3)
+#  1   2 
+#212 317 
+rem = rem %>% mutate(fid = SUBJID,
+                    remission = case_when(remission == "Remitter" ~ "1", remission == "Non-Remitter" ~ "2")) %>% select(SUBJID, fid, remission)
+write.table(rem, paste0(out,"/pheno/pgrn_rem.txt"), row.names=F, col.names=F,quote=F)
+
+# response (used 50% threshold)
+resp = pgrn %>% mutate(fid = SUBJID,
+                      response = case_when(response == "Responder" ~ "1", response == "Non-Responder" ~ "2")) %>% select(SUBJID, fid, response)
+write.table(resp, paste0(out,"/pheno/pgrn_resp.txt"), row.names=F, col.names=F,quote=F)
+
+# percentage improvement
+# adopting from karen's scripts
+df <- pgrn %>% mutate(gender = case_when(gender == "M" ~ "1",
+                                            gender == "F" ~ "2",
+                                            TRUE ~ "0"),
+                      gender = as.numeric(gender)) 
+df$z_perc_adj = as.numeric(scale(resid(lm(qidscpctchange.w8 ~ age + factor(gender) + qidsctotal.b, data=df, na.action=na.exclude))))
+df$fid = df$SUBJID
+# checked with Karen's files and completely same.
+write.table(df %>% select(SUBJID, fid, z_perc_adj), paste0(out,"/pheno/pgrn_perc_improv.txt"), row.names=F, col.names=F,quote=F)
+
+# Drug name and drug class
+# Drug name and class
+for (name in unique(pgrn$med.b)) {
+  id = data.frame((pgrn[c("SUBJID", "SUBJID", "med.b")])) %>% filter(med.b == name)
+  write.table(id, paste0(out, "/name/pgrn_name_", name, ".txt"), row.names=F, col.names=F, quote=F)
+}
+# all patients are SSRI users
+ssri = data.frame((pgrn[c("SUBJID", "SUBJID")])) %>% mutate(class = "SSRI")
+write.table(ssri, paste0(out, "/class/pgrn_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+
+drug = pgrn[, grepl("SUBJID|^med.b$", colnames(pgrn))]
+colnames(drug) = c("ID", "ad_name")
+# all SSRI users
+drug$ad_class = "SSRI"
+# form frequency tables
+tab = data.frame(table(tolower(drug$ad_name)))
+colnames(tab) = c("ad_name", "Frequency")
+class_map = unique(drug[, c("ad_class", "ad_name")])
+ad_name <- left_join(tab, class_map, by = "ad_name") %>% 
+    select(ad_name, ad_class, Frequency) %>% 
+    arrange(ad_class) %>%
+    rbind(data.frame(ad_name = "Total", ad_class = "Total", Frequency = length(na.omit(drug[, "ad_name"]))))
+colnames(ad_name) = c("Name", "Class", "Frequency")
+write.csv(ad_name, paste0(dir, "/ad_name.csv"), row.names = F)
+
+# dose
+dose <- pgrn %>% select(SUBJID, dose.b, dose.w4, dose.w8) %>%
+        pivot_longer(cols = starts_with("dose."),
+               names_to = "week", names_prefix = "dose.",
+               values_to = "dose") 
+write.table(dose, paste0(out,"/dose/pgrn_dose.txt"), row.names=F, col.names=T,quote=F)
+dose = dose %>%
+      group_by(week) %>% summarise(N = sum(!is.na(dose)))
+write.csv(dose, paste0(dir, "/ad_dose.csv"), row.names = F)
+
+```
+</details>
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+  rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "QIDS")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age, height, weight, ethnicity, marital status, education"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "Psychotherapy")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (PGRN)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Antidepressant information (by name / class)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pgrn"
+setwd(dir)
+table = read.csv("ad_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug names available (PGRN)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Antidepressant dose
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pgrn"
+setwd(dir)
+table = read.csv("ad_dose.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug dosage available (PGRN)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Depression symptom assessment scale
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pgrn"
+setwd(dir)
+table = read.csv("ad_qids.csv", header=T)
+
+table %>% 
+  kbl(caption='Symptom assessment scale (PGRN)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+#### Column names for demographic information
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pgrn"
+setwd(dir)
+table = read.csv("demo_colnames.csv", header=T)
+
+table %>% 
+  kbl(caption='Column names for demographic information (PGRN)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+
+```
+
+
+
+</br>
+
+***
+
+## PFZ
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 08-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/pfz"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/NEWMEDS/imi"
+
+# copy all files in the starting with pfz extension
+cp "$in"/pfizer* "$out"
+
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-08
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+library(readxl)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/pfz"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/pfz"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read file that looks make sense 
+pfz = read_dta("pfizermerged.dta")
+dim(pfz) # 1119 165 (too many columns to work with, also a lot without details of study)
+
+# results file (from Karen's script)
+pfz_pheno = read_dta("pfizer_remission_and_covariates.dta")
+dim(pfz_pheno) # 311 14
+
+# read .fam file in processed_data directory to check
+pfz_fam = read.table("/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/processed_data/pfz_rem.fam")
+#setdiff(pfz_fam$V1, pfz_pheno$iid) # 0, so all participants in .fam file included in this list
+
+# using the phenotype file (used by karen subsequently, pull out useful information)
+pfz = pfz %>% filter(iid %in% pfz_pheno$iid)
+nrow(pfz) # 311
+
+
+# Drug class / name # 
+# TREAT column looks to be drug name / class 
+table(pfz$TREAT)
+#SSRI # all SSRIs 
+# 311 
+
+# all patients are SSRI users
+ssri = data.frame((pfz[c("iid")])) %>% mutate(fid = iid, class = "SSRI")
+write.table(ssri, paste0(out, "/class/pfz_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+
+# form frequency tables
+tab = data.frame(Class = c("SSRI"), Frequency = nrow(ssri))
+write.csv(tab, paste0(dir, "/ad_name.csv"), row.names = F)
+
+# take 20 patients for instance and convert rows and columns for insepction
+df = pfz %>% slice(1:20)
+df = as.data.frame(t(df))
+write.csv(df, "variables.csv")
+
+dep = pfz %>% select(iid, starts_with("hd"))
+dep = pfz %>% select(iid, hdmi, hdtot, hdremit, hdpercchange,hdpercadj)
+
+
+## Clean up
+# Demographics
+demo = data.frame((pfz[c("iid", "iid", "age", "sex", "ethnicity")])) %>% rename(fid = iid.1)
+write.table(demo, paste0(out, "/demo/pfz_demo.txt"), row.names=F, quote=F)
+
+# Subtypes of depression
+# Single vs recurrent
+sub = data.frame((pfz[c("iid", "iid", "Duration")])) %>% rename(fid = iid.1, sub = Duration)
+write.table(sub %>% filter(sub == "Single"), paste0(out, "/sub/pfz_sub_single.txt"), row.names=F, col.names=F, quote=F)
+write.table(sub %>% filter(sub == "Recurrent"), paste0(out, "/sub/pfz_sub_recurrent.txt"), row.names=F, col.names=F, quote=F)
+
+# frequency tables
+tab = data.frame(table(sub$sub))
+colnames(tab) = c("Subtype", "Frequency")
+write.csv(tab, paste0(dir, "/dep_subtype.csv"), row.names = F)
+
+# read long format - contains by weekly measurements of HAM-D (by item)
+pfz_long = read_dta("pfizer_4_long.dta")
+# manually cross-checked and validated they are the same as the merged file
+long = pfz_long %>% filter(donorid %in% pfz$donorid) %>% left_join(pfz[,c("donorid", "iid")]) %>% mutate(fid = iid) %>%
+  select(iid, fid, visit, starts_with("hd"))
+# save the long format by week file 
+write.table(long, paste0(out, "/score/pfz_score_hamd.txt"), row.names = F, quote=F)
+
+# by weeek frequency tables
+week = long %>% 
+  group_by(visit) %>%
+  summarise(N = n_distinct(donorid))
+colnames(week) = c("Week", "Frequency")
+write.csv(tab, paste0(dir, "/hamd_week.csv"), row.names = F)
+
+# Phenotypes
+# remission
+table(pfz$hdremit)
+#  0   1 
+#211 100 
+# 2 patient did not pass qc, so eventually numbers in publication is 210/99. But looks make sense to me and this column is documented in karen's script before as the source of deriving the phenotype.
+rem = data.frame((pfz[c("iid", "iid", "hdremit")])) %>% 
+  rename(fid = iid.1) %>%
+  mutate(hdremit = case_when(hdremit == 0 ~ 2,
+                             TRUE ~ hdremit))
+write.table(rem, paste0(out, "/pheno/pfz_rem.txt"), row.names=F, col.names=F, quote=F)
+
+# percentage improvement
+# checked Karen's file, this column "zhdpercadj" contains same values as subsequent processed files.
+perc_improv = data.frame((pfz[c("iid", "iid", "zhdpercadj")])) %>% 
+  rename(fid = iid.1)
+write.table(perc_improv, paste0(out, "/pheno/pfz_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+
+```
+</details>
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+  rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAM-D (only sum scores and certain items available for baseline)")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age, ethnicity"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (PFZ)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+  
+```
+
+#### Antidepressant information (by name / class)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pfz"
+setwd(dir)
+table = read.csv("ad_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug class available (PFZ)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Depression subtype
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pfz"
+setwd(dir)
+table = read.csv("dep_subtype.csv", header=T)
+
+table %>% 
+  kbl(caption='Depression subtype (PFZ)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### By weekly measurements of HAM-D (individual items included)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/pfz"
+setwd(dir)
+table = read.csv("hamd_week.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with HAMD measurements available (PFZ)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+
+***
+
+## GENPOD
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 10-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/genpod"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/NEWMEDS/imi"
+in_pheno="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/NEWMEDS/phenotypes_covariates"
+
+# visually inspecting the files, too difficult to tell which one contains useful information
+# manually pull out genpod files that look relevant
+cp "$in"/bli_genpod.dta "$out"
+cp "$in_pheno"/genpod* "$out"
+cp "$in_pheno"/Genpod_SSRI_subjects "$out"
+
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-10
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+library(readxl)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/genpod"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/genpod"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read in data
+# same file as Karen's script
+genpod = read.table("genpodoutcomes_with_covariates.txt", header=T)
+dim(genpod) #477 7, looks fine 
+
+# phenotypes 
+# remission
+rem = genpod %>% select(fid, iid, bdremit) 
+#table(rem$bdremit)
+#  0   1 
+#306 171 
+rem = rem %>%
+  mutate(bdremit = case_when(bdremit == 0 ~ 2,
+                             TRUE ~ bdremit))
+write.table(rem, paste0(out, "/pheno/genpod_rem.txt"), row.names=F, col.names=F, quote=F)
+
+# percentage improvement
+perc_improv = genpod %>% select(fid, iid, outcome)
+write.table(perc_improv, paste0(out, "/pheno/genpod_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+
+# drug name / class
+ssri = read.table("Genpod_SSRI_subjects")
+
+genpod = genpod %>% mutate(drug = ifelse(fid %in% ssri$V1, 1, 0)) %>%
+          mutate(drug = ifelse(drug == 1, "citalopram", "reboxetine"),
+                 class = ifelse(drug == "citalopram", "SSRI", "NRI"))
+
+for (d in unique(genpod$drug)) {
+  df = genpod %>% select(fid, iid, drug) %>% filter(drug == d)
+  write.table(df, paste0(out, "/name/genpod_name_", d,".txt"), row.names=F, col.names=F, quote=F)
+}
+
+for (c in unique(genpod$class)) {
+  df = genpod %>% select(fid, iid, class) %>% filter(class == c)
+  write.table(df, paste0(out, "/class/genpod_class_", c,".txt"), row.names=F, col.names=F, quote=F)
+}
+
+# frequency table
+tab = data.frame(table(tolower(genpod$drug)))
+colnames(tab) = c("Drug", "Frequency")
+write.csv(tab, paste0(dir, "/drug_name.csv"), row.names = F)
+
+tab = data.frame(table(tolower(genpod$class)))
+colnames(tab) = c("Class", "Frequency")
+write.csv(tab, paste0(dir, "/drug_class.csv"), row.names = F)
+
+# covariates 
+cov = read.table("genpod_cov") %>% select(V1:V5)
+colnames(cov) = c("fid", "iid", "age", "gender", "bl_bd")
+write.table(cov, paste0(out, "/cov/genpod_cov.txt"), row.names=F, col.names=F, quote=F)
+
+```
+</details>
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+  rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "BDI")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = TRUE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (GENPOD)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Antidepressant information (by name)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/genpod"
+setwd(dir)
+table = read.csv("drug_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug name available (GENPOD)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Antidepressant information (by class)
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/genpod"
+setwd(dir)
+table = read.csv("drug_class.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug class available (GENPOD)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+
+***
+
+## Mayo 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 10-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/mayo"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/ISPC/interim_data"
+
+# visually inspecting the files, too difficult to tell which one contains useful information
+# manually pull out genpod files that look relevant
+cp "$in"/mayo* "$out"
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-10
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+library(readxl)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/mayo"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/mayo"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read data
+# phenotype details
+mayo = read.csv("mayo_phenotype_file.csv") 
+
+
+# sample
+mayo %>% slice(1:10)
+tab = data.frame(t(mayo))
+write.csv(tab, "tab.csv")
+
+
+# Phenotypes
+# remission
+rem = data.frame((mayo[c("geno_id", "geno_id", "endpoint_remission")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(rem, paste0(out, "/pheno/mayo_rem.txt"), row.names=F, col.names=F, quote=F)
+# percentage improvement
+mayo$perc_improv = as.numeric(scale(resid(lm(perc_improv_hamd17 ~ + age_at_time_of_consent + factor(gender) + baseline_total_hdrs17, data=mayo, na.action=na.exclude ))))
+perc_improv = data.frame((mayo[c("geno_id", "geno_id", "perc_improv")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(perc_improv, paste0(out, "/pheno/mayo_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+# response
+mayo$resp = ifelse(mayo$perc_improv_hamd17 >= 50, 1, 2)
+resp = data.frame((mayo[c("geno_id", "geno_id", "resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(resp, paste0(out, "/pheno/mayo_resp.txt"), row.names=F, col.names=F, quote=F)
+# early response (using 4 week, first follow up)
+mayo = mayo %>%
+  mutate(early_perc_improv = ((baseline_total_hdrs17-follow_up_1_total_hdrs17)/baseline_total_hdrs17)*100) %>%
+  mutate(early_resp = ifelse(early_perc_improv >= 50, 1, 2))
+early_resp = data.frame((mayo[c("geno_id", "geno_id", "early_resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(early_resp, paste0(out, "/pheno/mayo_early_resp.txt"), row.names=F, col.names=F, quote=F)
+
+# Drug names / class
+drug = data.frame((mayo[c("geno_id", "geno_id", "antidepressant_drug_1_at_begin_of_study")]))
+colnames(drug) = c("fid", "iid", "ad_name")
+
+# frequency table
+tab = data.frame(table(tolower(drug$ad_name)))
+colnames(tab) = c("Drug", "Frequency")
+tab$Class = "SSRI"
+tab = tab %>% select(Drug, Class, Frequency)
+write.csv(tab, paste0(dir, "/drug_name.csv"), row.names = F)
+
+# write outputs
+for (d in unique(drug$ad_name)) {
+  df = drug %>% select(fid, iid, ad_name) %>% filter(ad_name == d)
+  write.table(df, paste0(out, "/name/mayo_name_", d,".txt"), row.names=F, col.names=F, quote=F)
+}
+
+write.table(drug %>% mutate(class = "SSRI") %>% select(-ad_name), paste0(out, "/class/mayo_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+
+# covariates
+cov = data.frame((mayo[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17")]))
+write.table(cov, paste0(out, "/cov/mayo_cov.txt"), row.names=F, col.names=F, quote=F)
+
+# demographics
+demo =  data.frame((mayo[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17", "race_self_reported")]))
+write.table(demo, paste0(out, "/demo/mayo_demo.txt"), row.names=F, col.names=F, quote=F)
+
+
+```
+</details>
+
+
+
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAMD-17")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age", "race"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (Mayo)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Antidepressant information
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/mayo"
+setwd(dir)
+table = read.csv("drug_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug class available (Mayo)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+
+</br>
+
+***
+
+# Phenotype data (East Asian studies)
+
+## Taipei 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 11-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/taipei"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/ISPC/interim_data"
+
+# visually inspecting the files, too difficult to tell which one contains useful information
+# manually pull out genpod files that look relevant
+cp "$in"/taipei* "$out"
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-10
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+library(readxl)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/taipei"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/taipei"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read data
+# phenotype details
+taipei = read.csv("taipei_phenotype_file.csv") 
+
+
+# sample
+taipei %>% slice(1:10)
+tab = data.frame(t(taipei))
+write.csv(tab, "tab.csv")
+
+
+# Phenotypes
+# remission
+rem = data.frame((taipei[c("geno_id", "geno_id", "endpoint_remission")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(rem, paste0(out, "/pheno/taipei_rem.txt"), row.names=F, col.names=F, quote=F)
+# percentage improvement
+taipei$perc_improv = as.numeric(scale(resid(lm(perc_improv_hamd17 ~ + age_at_time_of_consent + factor(gender) + baseline_total_hdrs17, data=taipei, na.action=na.exclude ))))
+perc_improv = data.frame((taipei[c("geno_id", "geno_id", "perc_improv")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(perc_improv, paste0(out, "/pheno/taipei_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+# response
+taipei$resp = ifelse(taipei$perc_improv_hamd17 >= 50, 1, 2)
+resp = data.frame((taipei[c("geno_id", "geno_id", "resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(resp, paste0(out, "/pheno/taipei_resp.txt"), row.names=F, col.names=F, quote=F)
+# early response (using 4 week, first follow up)
+taipei = taipei %>%
+  mutate(early_perc_improv = ((baseline_total_hdrs17-follow_up_1_total_hdrs17)/baseline_total_hdrs17)*100) %>%
+  mutate(early_resp = ifelse(early_perc_improv >= 50, 1, 2))
+early_resp = data.frame((taipei[c("geno_id", "geno_id", "early_resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(early_resp, paste0(out, "/pheno/taipei_early_resp.txt"), row.names=F, col.names=F, quote=F)
+
+# Drug names / class
+drug = data.frame((taipei[c("geno_id", "geno_id", "antidepressant_drug_1_at_begin_of_study")]))
+colnames(drug) = c("fid", "iid", "ad_name")
+
+# frequency table
+tab = data.frame(table(tolower(drug$ad_name)))
+colnames(tab) = c("Drug", "Frequency")
+tab$Class = "SSRI"
+tab = tab %>% select(Drug, Class, Frequency)
+write.csv(tab, paste0(dir, "/drug_name.csv"), row.names = F)
+
+# write outputs
+for (d in unique(drug$ad_name)) {
+  df = drug %>% select(fid, iid, ad_name) %>% filter(ad_name == d)
+  write.table(df, paste0(out, "/name/taipei_name_", d,".txt"), row.names=F, col.names=F, quote=F)
+}
+
+write.table(drug %>% mutate(class = "SSRI") %>% select(-ad_name), paste0(out, "/class/taipei_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+
+# covariates
+cov = data.frame((taipei[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17")]))
+write.table(cov, paste0(out, "/cov/taipei_cov.txt"), row.names=F, col.names=F, quote=F)
+
+# demographics
+demo =  data.frame((taipei[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17", "race_omb")]))
+write.table(demo, paste0(out, "/demo/taipei_demo.txt"), row.names=F, col.names=T, quote=F)
+
+
+```
+</details>
+
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAMD-17")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age", "race"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (Taipei)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Antidepressant information
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/taipei"
+setwd(dir)
+table = read.csv("drug_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug class available (Taipei)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+
+</br>
+
+***
+
+## Japan 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 11-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/japan"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/ISPC/interim_data"
+
+# visually inspecting the files, too difficult to tell which one contains useful information
+# manually pull out genpod files that look relevant
+cp "$in"/japan* "$out"
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-11
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+library(readxl)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/japan"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/japan"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read data
+# phenotype details
+japan = read.csv("japan_phenotype_file.csv") 
+
+
+# sample
+japan %>% slice(1:10)
+tab = data.frame(t(japan))
+write.csv(tab, "tab.csv")
+
+
+# Phenotypes
+# remission
+rem = data.frame((japan[c("geno_id", "geno_id", "endpoint_remission")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(rem, paste0(out, "/pheno/japan_rem.txt"), row.names=F, col.names=F, quote=F)
+# percentage improvement
+japan$perc_improv = as.numeric(scale(resid(lm(perc_improv_hamd17 ~ + age_at_time_of_consent + factor(gender) + baseline_total_hdrs17, data=japan, na.action=na.exclude ))))
+perc_improv = data.frame((japan[c("geno_id", "geno_id", "perc_improv")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(perc_improv, paste0(out, "/pheno/japan_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+# response
+japan$resp = ifelse(japan$perc_improv_hamd17 >= 50, 1, 2)
+resp = data.frame((japan[c("geno_id", "geno_id", "resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(resp, paste0(out, "/pheno/japan_resp.txt"), row.names=F, col.names=F, quote=F)
+# early response (using 4 week, first follow up)
+#table(japan$time_period_baseline_follow_up_2)
+#  4 
+#121, 2nd follow-up is week 4
+japan = japan %>%
+  mutate(early_perc_improv = ((baseline_total_hdrs17-follow_up_2_total_hdrs17)/baseline_total_hdrs17)*100) %>%
+  mutate(early_resp = ifelse(early_perc_improv >= 50, 1, 2))
+early_resp = data.frame((japan[c("geno_id", "geno_id", "early_resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(early_resp, paste0(out, "/pheno/japan_early_resp.txt"), row.names=F, col.names=F, quote=F)
+
+# Drug names / class
+drug = data.frame((japan[c("geno_id", "geno_id", "antidepressant_drug_1_at_begin_of_study")]))
+colnames(drug) = c("fid", "iid", "ad_name")
+
+# frequency table
+tab = data.frame(table(tolower(drug$ad_name)))
+colnames(tab) = c("Drug", "Frequency")
+tab$Class = "SSRI"
+tab = tab %>% select(Drug, Class, Frequency)
+write.csv(tab, paste0(dir, "/drug_name.csv"), row.names = F)
+
+# write outputs
+for (d in unique(drug$ad_name)) {
+  df = drug %>% select(fid, iid, ad_name) %>% filter(ad_name == d)
+  write.table(df, paste0(out, "/name/japan_name_", d,".txt"), row.names=F, col.names=F, quote=F)
+}
+
+write.table(drug %>% mutate(class = "SSRI") %>% select(-ad_name), paste0(out, "/class/japan_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+
+# covariates
+cov = data.frame((japan[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17")]))
+write.table(cov, paste0(out, "/cov/japan_cov.txt"), row.names=F, col.names=F, quote=F)
+
+# demographics
+demo =  data.frame((japan[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17", "race_omb")]))
+write.table(demo, paste0(out, "/demo/japan_demo.txt"), row.names=F, col.names=T, quote=F)
+```
+</details>
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAMD-17")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age", "race"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (Japan)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Antidepressant information
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/japan"
+setwd(dir)
+table = read.csv("drug_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug class available (Japan)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+
+</br>
+
+***
+
+## Miaoli 
+
+<details><summary>Transferring data to project directory</summary>
+```{bash, eval=F}
+
+# Performed date: 11-07-2024
+
+# Paths
+out="/home/chrislo/projects/PGC_adresponse_studies/original/miaoli"
+in="/home/chrislo/projects/karen_disk_backup/AntidepressPgxConsortium/datasets/genotyped/shared_data/ISPC/interim_data"
+
+# visually inspecting the files, too difficult to tell which one contains useful information
+# manually pull out genpod files that look relevant
+cp "$in"/miaoli* "$out"
+```
+</details>
+
+<details><summary>Examination of data, and re-write to cleaner version</summary>
+```{R, eval = F}
+
+##########################################################
+# Author: Chris Lo
+# Date created: 2024-07-11
+#########################################################
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages/')
+
+library(tidyverse)
+library(haven)
+library(readxl)
+
+# set directories
+dir="/home/chrislo/projects/PGC_adresponse_studies/original/miaoli"
+out="/home/chrislo/projects/PGC_adresponse_studies/phenotype/miaoli"
+ref="/home/chrislo/projects/PGC_adresponse_studies/reference"
+funct_path="/home/chrislo/funct_bin"
+
+setwd(dir)
+
+# source scripts for function
+source(paste0(funct_path, "/phenotype.R"))
+source(paste0(ref, "/dep_scale.R"))
+
+# read data
+# phenotype details
+miaoli = read.csv("miaoli_phenotype_file.csv") 
+
+
+# sample
+miaoli %>% slice(1:10)
+tab = data.frame(t(miaoli))
+write.csv(tab, "tab.csv")
+
+
+# Phenotypes
+# remission
+rem = data.frame((miaoli[c("geno_id", "geno_id", "endpoint_remission")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(rem, paste0(out, "/pheno/miaoli_rem.txt"), row.names=F, col.names=F, quote=F)
+# percentage improvement
+miaoli$perc_improv = as.numeric(scale(resid(lm(perc_improv_hamd17 ~ + age_at_time_of_consent + factor(gender) + baseline_total_hdrs17, data=miaoli, na.action=na.exclude ))))
+perc_improv = data.frame((miaoli[c("geno_id", "geno_id", "perc_improv")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(perc_improv, paste0(out, "/pheno/miaoli_perc_improv.txt"), row.names=F, col.names=F, quote=F)
+# response
+miaoli$resp = ifelse(miaoli$perc_improv_hamd17 >= 50, 1, 2)
+resp = data.frame((miaoli[c("geno_id", "geno_id", "resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(resp, paste0(out, "/pheno/miaoli_resp.txt"), row.names=F, col.names=F, quote=F)
+# early response (using 4 week, first follow up)
+#table(miaoli$time_period_baseline_follow_up_3)
+#  4 
+#245, 3rd follow-up is week 4
+miaoli = miaoli %>%
+  mutate(early_perc_improv = ((baseline_total_hdrs17-follow_up_3_total_hdrs17)/baseline_total_hdrs17)*100) %>%
+  mutate(early_resp = ifelse(early_perc_improv >= 50, 1, 2))
+early_resp = data.frame((miaoli[c("geno_id", "geno_id", "early_resp")])) %>% rename(fid = geno_id, iid = geno_id.1)
+write.table(early_resp, paste0(out, "/pheno/miaoli_early_resp.txt"), row.names=F, col.names=F, quote=F)
+
+# Drug names / class
+drug = data.frame((miaoli[c("geno_id", "geno_id", "antidepressant_drug_1_at_begin_of_study")]))
+colnames(drug) = c("fid", "iid", "ad_name")
+
+# frequency table
+tab = data.frame(table(tolower(drug$ad_name)))
+colnames(tab) = c("Drug", "Frequency")
+tab$Class = "SSRI"
+tab = tab %>% select(Drug, Class, Frequency)
+write.csv(tab, paste0(dir, "/drug_name.csv"), row.names = F)
+
+# write outputs
+for (d in unique(drug$ad_name)) {
+  df = drug %>% select(fid, iid, ad_name) %>% filter(ad_name == d)
+  write.table(df, paste0(out, "/name/miaoli_name_", d,".txt"), row.names=F, col.names=F, quote=F)
+}
+
+write.table(drug %>% mutate(class = "SSRI") %>% select(-ad_name), paste0(out, "/class/miaoli_class_SSRI.txt"), row.names=F, col.names=F, quote=F)
+
+# covariates
+cov = data.frame((miaoli[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17")]))
+write.table(cov, paste0(out, "/cov/miaoli_cov.txt"), row.names=F, col.names=F, quote=F)
+
+# demographics
+demo =  data.frame((miaoli[c("geno_id", "geno_id", "age_at_time_of_consent", "gender", "baseline_total_hdrs17", "race_omb")]))
+write.table(demo, paste0(out, "/demo/miaoli_demo.txt"), row.names=F, col.names=T, quote=F)
+```
+</details>
+
+
+
+
+### Summary information (by tab) {.tabset}
+
+#### Summary of data available
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+summary <- data.frame() %>% 
+rbind(data.frame(Criteria = "Inpatient recruitment", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Treatment resistant at baseline", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Naturalistic study", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression assessment scale", Status = "HAMD-17")) %>%
+  rbind(data.frame(Criteria = "Symptom scores for individual items", Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Early improvement available (< 4 weeks)", Status = TRUE)) %>% 
+  rbind(data.frame(Criteria = "Demographics", Status = c("gender, age", "race"))) %>% 
+  rbind(data.frame(Criteria = "Non-depression clinical variables", Status = "")) %>% 
+  rbind(data.frame(Criteria = "Depression subtypes", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression onset", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Depression episodes (prior to current)", Status = FALSE)) %>% 
+  rbind(data.frame(Criteria = "Adverse events" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Dosage information" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "Plasma levels" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SSRI users" , Status = TRUE)) %>%
+  rbind(data.frame(Criteria = "TCA users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "SNRI users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "NASSA / mirtazapine users" , Status = FALSE)) %>%
+  rbind(data.frame(Criteria = "Other medications" , Status = FALSE))
+
+summary %>% 
+  kbl(caption=' Summary of data available (Miaoli)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
+#### Antidepressant information
+```{R, eval = T, echo = F, message = F, warning = F, results = 'asis'}
+
+### --- Set library paths --- ###
+.libPaths(new = '/gpfs/home4/chrislo/rpackages')
+
+library(dplyr)
+library(kableExtra)
+
+# set directory and read
+dir = "/home/chrislo/projects/PGC_adresponse_studies/original/miaoli"
+setwd(dir)
+table = read.csv("drug_name.csv", header=T)
+
+table %>% 
+  kbl(caption='Number of patients with drug class available (Miaoli)') %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive", full_width = F)) %>%
+  scroll_box(width = "100%", height = "350px")
+```
+
